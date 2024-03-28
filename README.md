@@ -1,14 +1,14 @@
-#프로그램 개요
+# 프로그램 개요
 이 프로그램은 Python을 사용하여 Docker를 관리하는 데 사용되는 다양한 설정 파일과 스크립트를 포함합니다. 이 프로그램에는 Docker 컨테이너를 설정하고 실행하는 데 필요한 모든 것이 포함되어 있습니다. 주요 구성 요소로는 Dockerfile, docker-compose.yml 및 Bash 스크립트가 있습니다.
 
 하단의 로컬 네트워크 및 호스트 변조부분은 구성에 맞춰 수정할 수 있습니다.
 
-##구성 요소
+## 구성 요소
 * Dockerfile: Docker 이미지를 빌드하는 데 사용됩니다. 각 서비스에 대한 Docker 이미지를 만들기 위한 명령 및 환경 설정이 포함되어 있습니다.
 * docker-compose.yml: 여러 Docker 서비스를 정의하고 관리하는 데 사용됩니다. 각 서비스의 설정, 환경 변수 및 종속성을 정의합니다.
 * Bash 스크립트: Docker 네트워크를 생성하고 관리하는 데 사용됩니다. Docker 컨테이너 및 네트워크를 관리하기 위해 필요한 명령이 포함되어 있습니다.
 
-##구현된 서비스
+## 구현된 서비스
 1. nginx: 웹 서버로 사용되며, 프로젝트의 여러 서비스 및 애플리케이션에 대한 역할을 수행합니다.
 2. anaconda: 데이터 과학 및 머신러닝 작업을 위한 Anaconda 환경을 제공합니다. Jupyter Notebook을 실행하고 관리합니다.
 3. fastapi: FastAPI를 사용하여 API 서버를 제공합니다.
@@ -19,7 +19,7 @@
 8. hub: Selenium Grid의 중앙 집중식 허브를 설정하고 관리합니다.
 
 
-##사용법
+## 사용법
 1. 프로그램을 클론합니다:
 ```bash
 git clone https://github.com/zuzcky2/science.git
@@ -48,7 +48,7 @@ docker-compose exec mongodb sh -c 'bash /var/volumes/docker/user_db_add.sh'
 bash ./web_build.sh
 ```
 
-##테스트용 로컬 네트워크 설정
+## 테스트용 로컬 네트워크 설정
 1. 로컬 host 변조
 ```bash
 127.0.0.1      aggrobot.click
@@ -82,7 +82,10 @@ docker-compose exec certbot sh -c 'sh /certbot-certonly.sh'
 docker-compose exec haproxy restart
 ```
 
-##주의 사항
+## 주의 사항
 각 서비스의 환경 변수와 설정은 사용하는 환경 및 요구 사항에 따라 적절하게 수정해야 합니다.
 Docker 및 Docker Compose에 대한 이해가 필요합니다.
 스크립트를 실행하기 전에 실행 권한을 부여해야 할 수 있습니다.
+
+## python 문서
+* [python](./python/README.md)
