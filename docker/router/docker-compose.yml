@@ -1,0 +1,39 @@
+version: '3'
+services:
+  haproxy:
+    container_name: ${COMPOSE_PROJECT_NAME}_haproxy
+    build: haproxy
+    platform: linux/x86_64
+    ports:
+      - ${__HTTP_PORT__}:${__HTTP_PORT__}
+      - ${__HTTPS_PORT__}:${__HTTPS_PORT__}
+      - "1936:1936"
+    command: [ "haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg" ]
+    volumes:
+      - ${__VOLUME_PATH__}/etc/letsencrypt:/etc/letsencrypt
+    restart: unless-stopped
+    networks:
+      - local-network
+    # HAProxy 컨테이너 설정
+
+  certbot:
+    container_name: ${COMPOSE_PROJECT_NAME}_certbot
+    build: certbot
+    environment:
+      SERVER_NAME: ${SERVER_NAME}
+      MAINTAINER: ${MAINTAINER}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+    volumes:
+      - ${__VOLUME_PATH__}/etc/letsencrypt:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --dns-route53; sleep 24h & wait $${!}; done;'"
+    networks:
+      - local-network
+    restart: unless-stopped
+    # Certbot 컨테이너 설정
+
+networks:
+  local-network:
+    external: true
+    # 로컬 네트워크 설정

@@ -1,0 +1,183 @@
+version: '3'
+services:
+  nginx:
+    container_name: ${COMPOSE_PROJECT_NAME}_nginx
+    build: nginx
+    ports:
+      - ${__NGINX_HTTP__}:80
+    environment:
+      SERVER_NAME: ${SERVER_NAME}
+      WEB_SERVER_NAME: ${WEB_SERVER_NAME}
+      API_SERVER_NAME: ${API_SERVER_NAME}
+      STATIC_SERVER_NAME: ${STATIC_SERVER_NAME}
+      SOCKET_SERVER_NAME: ${SOCKET_SERVER_NAME}
+      JUPYTER_SERVER_NAME: ${JUPYTER_SERVER_NAME}
+      VNC_SERVER_NAME: ${VNC_SERVER_NAME}
+      HUB_SERVER_NAME: ${HUB_SERVER_NAME}
+      SYNC_SERVER_NAME: ${SYNC_SERVER_NAME}
+      WEB_URL: ${WEB_URL}
+      API_URL: ${API_URL}
+      STATIC_URL: ${STATIC_URL}
+      SOCKET_URL: ${SOCKET_URL}
+      NGINX_ENV: ${NGINX_ENV}
+      __CONTAINER_VOLUME_PATH__: ${__CONTAINER_VOLUME_PATH__}
+    extra_hosts:
+      - ${SERVER_NAME}:172.17.0.1
+    volumes:
+      - ${__VOLUME_PATH__}/log/nginx:${__CONTAINER_VOLUME_PATH__}/log
+      - ${__VOLUME_PATH__}/dist:${__CONTAINER_VOLUME_PATH__}/dist
+      - ${__VOLUME_PATH__}/static:${__CONTAINER_VOLUME_PATH__}/static
+      - ${__SOURCE_PATH__}:${__CONTAINER_SOURCE_PATH__}
+      - ${DOCKER_ROOT}/nginx:${__CONTAINER_VOLUME_PATH__}/docker
+    links:
+      - anaconda
+      - fastapi
+      - nodejs
+      - chromium
+      - hub
+    restart: unless-stopped
+    command: ["nginx"]
+    networks:
+      local-network:
+        aliases:
+          - ${SERVER_NAME}
+          - ${WEB_SERVER_NAME}
+          - ${API_SERVER_NAME}
+          - ${STATIC_SERVER_NAME}
+          - ${SOCKET_SERVER_NAME}
+          - ${JUPYTER_SERVER_NAME}
+          - ${VNC_SERVER_NAME}
+          - ${HUB_SERVER_NAME}
+
+  anaconda:
+    container_name: ${COMPOSE_PROJECT_NAME}_anaconda
+    build: anaconda
+    environment:
+      PYTHONPATH: ${__CONTAINER_SOURCE_PATH__}/python
+      ANACONDA_ENV: ${ANACONDA_ENV}
+      JUPYTER_SERVER_NAME: ${JUPYTER_SERVER_NAME}
+      JUPYTER_URL: ${JUPYTER_URL}
+      PROJECT_ROOT: ${__CONTAINER_SOURCE_PATH__}/python
+      __CONTAINER_VOLUME_PATH__: ${__CONTAINER_VOLUME_PATH__}
+    volumes:
+      - ${__VOLUME_PATH__}/log/anaconda:${__CONTAINER_VOLUME_PATH__}/log
+      - ${__VOLUME_PATH__}/dist:${__CONTAINER_VOLUME_PATH__}/dist
+      - ${__VOLUME_PATH__}/static:${__CONTAINER_VOLUME_PATH__}/static
+      - ${__SOURCE_PATH__}/python:${__CONTAINER_SOURCE_PATH__}/python
+      - ${DOCKER_ROOT}/anaconda:${__CONTAINER_VOLUME_PATH__}/docker
+    working_dir: ${__CONTAINER_SOURCE_PATH__}/python
+    command: jupyter notebook
+    links:
+      - mongodb
+    networks:
+      - local-network
+    restart: unless-stopped
+
+  fastapi:
+    container_name: ${COMPOSE_PROJECT_NAME}_fastapi
+    build: anaconda
+    ports:
+      - 8000:8000
+    environment:
+      PYTHONPATH: ${__CONTAINER_SOURCE_PATH__}/python
+      API_ENV: ${API_ENV}
+      API_SERVER_NAME: ${API_SERVER_NAME}
+      API_URL: ${API_URL}
+      PROJECT_ROOT: ${__CONTAINER_SOURCE_PATH__}/python
+      __CONTAINER_VOLUME_PATH__: ${__CONTAINER_VOLUME_PATH__}
+    volumes:
+      - ${__VOLUME_PATH__}/log/fastapi:${__CONTAINER_VOLUME_PATH__}/log
+      - ${__VOLUME_PATH__}/dist:${__CONTAINER_VOLUME_PATH__}/dist
+      - ${__VOLUME_PATH__}/static:${__CONTAINER_VOLUME_PATH__}/static
+      - ${__SOURCE_PATH__}/python:${__CONTAINER_SOURCE_PATH__}/python
+      - ${DOCKER_ROOT}/anaconda:${__CONTAINER_VOLUME_PATH__}/docker
+    working_dir: ${__CONTAINER_SOURCE_PATH__}/python
+    command: [
+        'uvicorn', 'api:route', '--host', '0.0.0.0', '--port', '8000', '--proxy-headers',
+        '--root-path', '/', '--forwarded-allow-ips="*"', '--reload',
+    ]
+    links:
+      - mongodb
+    networks:
+      - local-network
+    restart: unless-stopped
+
+  nodejs:
+    container_name: ${COMPOSE_PROJECT_NAME}_nodejs
+    build: nodejs
+    volumes:
+      - ${__VOLUME_PATH__}/log/nodejs:${__CONTAINER_VOLUME_PATH__}/log
+      - ${__VOLUME_PATH__}/dist:${__CONTAINER_VOLUME_PATH__}/dist
+      - ${__VOLUME_PATH__}/static:${__CONTAINER_VOLUME_PATH__}/static
+      - ${__SOURCE_PATH__}/nodejs:${__CONTAINER_SOURCE_PATH__}/nodejs
+      - ${DOCKER_ROOT}/nodejs:${__CONTAINER_VOLUME_PATH__}/docker
+    working_dir: ${__CONTAINER_SOURCE_PATH__}/nodejs
+    restart: unless-stopped
+    networks:
+      - local-network
+
+  mongodb:
+    container_name: ${COMPOSE_PROJECT_NAME}_mongodb
+    build: mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+      MONGO_INITDB_USERNAME: ${MONGO_INITDB_USERNAME}
+      MONGO_INITDB_PASSWORD: ${MONGO_INITDB_PASSWORD}
+    ports:
+      - ${__MONGODB_OPEN_PORT__}:27017
+    volumes:
+      - ${__VOLUME_PATH__}/log/mongodb:/var/log/mongodb
+      - ${__VOLUME_PATH__}/data/mongodb/db:/data/db:delegated
+      - ${DOCKER_ROOT}/mongodb:${__CONTAINER_VOLUME_PATH__}/docker
+    networks:
+      - local-network
+
+  logrotate:
+    container_name: ${COMPOSE_PROJECT_NAME}_logrotate
+    build: logrotate
+    restart: unless-stopped
+    user: root
+    networks:
+      - local-network
+    environment:
+      - CRON_EXPR="* * * * *"
+      - LOGROTATE_LOGFILES=/var/log/logs/*/*.log
+      - LOGROTATE_FILESIZE=10M
+      - LOGROTATE_FILENUM=5
+    volumes:
+      - ${__VOLUME_PATH__}/log:/var/log/logs:rw
+
+  chromium:
+    container_name: ${COMPOSE_PROJECT_NAME}_node
+    build: chromium
+    restart: unless-stopped
+    shm_size: 2gb
+    networks:
+      - local-network
+    depends_on:
+      - hub
+    environment:
+      - SE_EVENT_BUS_HOST=hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+
+  hub:
+    container_name: ${COMPOSE_PROJECT_NAME}_hub
+    build: selenium
+    restart: unless-stopped
+    networks:
+      - local-network
+    environment:
+      - SE_NODE_SESSION_TIMEOUT=300
+      - SE_SESSION_REQUEST_TIMEOUT=30
+      - SE_SESSION_RETRY_INTERVAL=5
+
+networks:
+  local-network:
+    external: true
+
