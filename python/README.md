@@ -28,3 +28,4 @@
 
 * [support](./app/packages/support/README.md)
 * [database](./app/packages/database/README.md)
+* [api](./app/packages/api/README.md)
